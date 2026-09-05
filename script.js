@@ -15,10 +15,13 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Correção do idioma para envios de e-mail do Firebase em Português
+// Idioma para envios de e-mail do Firebase em Português
 auth.languageCode = 'pt-BR';
 
 const PORCENTAGEM_DIZIMO = 0.10;
+
+let usuarioAtual = null;
+let desinscritosListeners = [];
 
 let produtos = [];
 let vendas = [];
@@ -94,7 +97,6 @@ formSenha.addEventListener("submit", async (e) => {
 
   try {
     await auth.signInWithEmailAndPassword(emailDigitado, senhaDigitada);
-
     modalSenha.style.display = "none";
     campoEmail.value = "";
     campoSenha.value = "";
@@ -120,7 +122,6 @@ formCadastro.addEventListener("submit", async (e) => {
 
   try {
     await auth.createUserWithEmailAndPassword(email, senha);
-
     modalSenha.style.display = "none";
     campoEmailCadastro.value = "";
     campoSenhaCadastro.value = "";
@@ -162,11 +163,25 @@ if (btnSair) {
   });
 }
 
-// OBSERVADOR DE ESTADO DA AUTENTICAÇÃO (Sessão mantida nativamente pelo Firebase)
+// OBSERVADOR DE ESTADO DA AUTENTICAÇÃO (MANTÉM DADOS ISOLADOS POR USUÁRIO)
 auth.onAuthStateChanged((usuario) => {
+  // Limpa ouvintes antigos ao trocar de conta
+  desinscritosListeners.forEach(unsub => unsub());
+  desinscritosListeners = [];
+
   if (usuario) {
+    usuarioAtual = usuario;
     modalSenha.style.display = "none";
+    escutarNuvemUsuario(usuario.uid);
   } else {
+    usuarioAtual = null;
+    produtos = [];
+    vendas = [];
+    historico = [];
+    renderizarProdutos();
+    renderizarVendas();
+    renderizarHistorico();
+    atualizarDashboard();
     modalSenha.style.display = "flex";
   }
 });
@@ -180,24 +195,32 @@ function obterDataHoje() {
   return new Date().toLocaleDateString("pt-BR");
 }
 
-// SINCRONIZAÇÃO EM TEMPO REAL COM A NUVEM
-function escutarNuvem() {
-  db.collection("produtos").onSnapshot(snapshot => {
+// HELPER PARA COLEÇÕES ISOLADAS DO USUÁRIO
+function colecaoUsuario(nomeColecao) {
+  if (!usuarioAtual) throw new Error("Usuário não autenticado.");
+  return db.collection("usuarios").doc(usuarioAtual.uid).collection(nomeColecao);
+}
+
+// SINCRONIZAÇÃO PRIVADA EM TEMPO REAL
+function escutarNuvemUsuario(uid) {
+  const unsubProdutos = db.collection("usuarios").doc(uid).collection("produtos").onSnapshot(snapshot => {
     produtos = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     renderizarProdutos();
     atualizarSelectProdutos();
   });
 
-  db.collection("vendas").onSnapshot(snapshot => {
+  const unsubVendas = db.collection("usuarios").doc(uid).collection("vendas").onSnapshot(snapshot => {
     vendas = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     renderizarVendas();
     atualizarDashboard();
   });
 
-  db.collection("historico").onSnapshot(snapshot => {
+  const unsubHistorico = db.collection("usuarios").doc(uid).collection("historico").onSnapshot(snapshot => {
     historico = snapshot.docs.map(doc => ({ docId: doc.id, ...doc.data() }));
     renderizarHistorico();
   });
+
+  desinscritosListeners.push(unsubProdutos, unsubVendas, unsubHistorico);
 }
 
 // NAVEGAÇÃO
@@ -214,9 +237,11 @@ botoesMenu.forEach(botao => {
   });
 });
 
-// GESTÃO DE PRODUTOS
+// GESTÃO DE PRODUTOS ISOLADA
 formProduto.addEventListener("submit", async function(event) {
   event.preventDefault();
+  if (!usuarioAtual) return;
+
   const nome = nomeProduto.value.trim();
   const custo = Number(custoProduto.value);
   const preco = Number(precoProduto.value);
@@ -229,9 +254,9 @@ formProduto.addEventListener("submit", async function(event) {
 
   if (produtoId.value) {
     const docId = produtoId.value;
-    await db.collection("produtos").doc(docId).update({ nome, custo, preco, estoque });
+    await colecaoUsuario("produtos").doc(docId).update({ nome, custo, preco, estoque });
   } else {
-    await db.collection("produtos").add({
+    await colecaoUsuario("produtos").add({
       id: Date.now(),
       nome, custo, preco, estoque
     });
@@ -266,7 +291,7 @@ function renderizarProdutos(listaFiltrada = null) {
   });
 }
 
-// LÓGICA DA BARRA DE BUSCA EM TEMPO REAL
+// BUSCA RÁPIDA EM TEMPO REAL
 inputBuscaProduto.addEventListener("input", () => {
   const termo = inputBuscaProduto.value.trim().toLowerCase();
 
@@ -322,7 +347,7 @@ function limparFormularioProduto() {
 
 async function excluirProduto(docId, nome) {
   if (!confirm(`Deseja excluir "${nome}"?`)) return;
-  await db.collection("produtos").doc(docId).delete();
+  await colecaoUsuario("produtos").doc(docId).delete();
 }
 
 function atualizarSelectProdutos() {
@@ -335,9 +360,11 @@ function atualizarSelectProdutos() {
   });
 }
 
-// VENDAS
+// VENDAS ISOLADAS
 formVenda.addEventListener("submit", async function(event) {
   event.preventDefault();
+  if (!usuarioAtual) return;
+
   const docIdProduto = produtoVenda.value;
   const quantidade = Number(quantidadeVenda.value);
 
@@ -352,7 +379,7 @@ formVenda.addEventListener("submit", async function(event) {
     return;
   }
 
-  await db.collection("vendas").add({
+  await colecaoUsuario("vendas").add({
     id: Date.now(),
     data: obterDataHoje(),
     produtoId: produto.docId,
@@ -364,7 +391,7 @@ formVenda.addEventListener("submit", async function(event) {
     capital: produto.custo * quantidade
   });
 
-  await db.collection("produtos").doc(produto.docId).update({
+  await colecaoUsuario("produtos").doc(produto.docId).update({
     estoque: produto.estoque - quantidade
   });
 
@@ -406,12 +433,12 @@ async function excluirVenda(docIdVenda, docIdProduto, quantidade) {
 
   const produto = produtos.find(p => p.docId === docIdProduto);
   if (produto) {
-    await db.collection("produtos").doc(docIdProduto).update({
+    await colecaoUsuario("produtos").doc(docIdProduto).update({
       estoque: produto.estoque + quantidade
     });
   }
 
-  await db.collection("vendas").doc(docIdVenda).delete();
+  await colecaoUsuario("vendas").doc(docIdVenda).delete();
 }
 
 // DASHBOARD E FECHAMENTO
@@ -447,6 +474,8 @@ function atualizarDashboard() {
 }
 
 document.getElementById("fecharDia").addEventListener("click", async function() {
+  if (!usuarioAtual) return;
+
   const hoje = obterDataHoje();
   const vendasHoje = obterVendasHoje();
 
@@ -461,7 +490,7 @@ document.getElementById("fecharDia").addEventListener("click", async function() 
   }
 
   const v = calcularDia();
-  await db.collection("historico").add({
+  await colecaoUsuario("historico").add({
     id: Date.now(),
     data: hoje,
     ...v,
@@ -499,7 +528,7 @@ function renderizarHistorico() {
 
 async function excluirHistorico(docId) {
   if (!confirm("Remover este histórico?")) return;
-  await db.collection("historico").doc(docId).delete();
+  await colecaoUsuario("historico").doc(docId).delete();
 }
 
 // INICIALIZAÇÃO
@@ -508,8 +537,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (elemData) {
     elemData.textContent = obterDataHoje();
   }
-  
-  escutarNuvem();
 
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./service-worker.js")
