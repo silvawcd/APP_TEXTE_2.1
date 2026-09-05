@@ -15,11 +15,10 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
 
-// Correção do idioma para envios de e-mail do Firebase
+// Correção do idioma para envios de e-mail do Firebase em Português
 auth.languageCode = 'pt-BR';
 
 const PORCENTAGEM_DIZIMO = 0.10;
-let senhaSistema = "123456"; // Senha padrão inicial
 
 let produtos = [];
 let vendas = [];
@@ -47,88 +46,128 @@ const resultadoBuscaContainer = document.getElementById("resultadoBuscaContainer
 const alertaSemProduto = document.getElementById("alertaSemProduto");
 const btnCadastrarDaBusca = document.getElementById("btnCadastrarDaBusca");
 
-// AUTENTICAÇÃO E SEGURANÇA COM SENHA
+// ELEMENTOS DE AUTENTICAÇÃO E MODAL
 const modalSenha = document.getElementById("modalSenha");
 const formSenha = document.getElementById("formSenha");
+const formCadastro = document.getElementById("formCadastro");
+const campoEmail = document.getElementById("campoEmail");
 const campoSenha = document.getElementById("campoSenha");
+const campoEmailCadastro = document.getElementById("campoEmailCadastro");
+const campoSenhaCadastro = document.getElementById("campoSenhaCadastro");
 const erroSenha = document.getElementById("erroSenha");
 const sucessoSenha = document.getElementById("sucessoSenha");
-const btnAlterarSenha = document.getElementById("btnAlterarSenha");
 const btnEsqueciSenha = document.getElementById("btnEsqueciSenha");
+const btnSair = document.getElementById("btnSair");
 
-async function carregarSenha() {
-  try {
-    const doc = await db.collection("configuracoes").doc("acesso").get();
-    if (doc.exists && doc.data().senha) {
-      senhaSistema = doc.data().senha;
-    }
-  } catch (erro) {
-    console.error("Erro ao carregar senha do Firebase:", erro);
-  }
+const btnAbaLogin = document.getElementById("btnAbaLogin");
+const btnAbaCadastro = document.getElementById("btnAbaCadastro");
+
+// GERENCIAMENTO DAS ABAS (LOGIN / CADASTRO)
+btnAbaLogin.addEventListener("click", () => {
+  formSenha.style.display = "block";
+  formCadastro.style.display = "none";
+  btnAbaLogin.classList.add("ativo");
+  btnAbaCadastro.classList.remove("ativo");
+  ocultarMensagens();
+});
+
+btnAbaCadastro.addEventListener("click", () => {
+  formSenha.style.display = "none";
+  formCadastro.style.display = "block";
+  btnAbaCadastro.classList.add("ativo");
+  btnAbaLogin.classList.remove("ativo");
+  ocultarMensagens();
+});
+
+function ocultarMensagens() {
+  erroSenha.hidden = true;
+  sucessoSenha.hidden = true;
 }
 
-// LOGIN CORRIGIDO: Suporta tanto a senha local quanto a autenticação por e-mail/senha do Firebase Auth
+// 1. LOGIN INDIVIDUAL VIA FIREBASE AUTH
 formSenha.addEventListener("submit", async (e) => {
   e.preventDefault();
+  ocultarMensagens();
+
+  const emailDigitado = campoEmail.value.trim();
   const senhaDigitada = campoSenha.value;
 
-  // 1. Verifica primeiro a senha salva no Firestore/Sistema Local
-  if (senhaDigitada === senhaSistema) {
-    sessionStorage.setItem("acessoAutorizado", "true");
-    modalSenha.style.display = "none";
-    erroSenha.hidden = true;
-    campoSenha.value = "";
-    return;
-  }
-
-  // 2. Se a senha local falhar, tenta autenticar via Firebase Auth (caso a senha tenha sido redefinida pelo e-mail)
   try {
-    const emailUsuario = "godotwd@gmail.com"; // E-mail cadastrado no console
-    await auth.signInWithEmailAndPassword(emailUsuario, senhaDigitada);
-    
-    // Atualiza a nova senha também no Firestore para manter sincronizado
-    await db.collection("configuracoes").doc("acesso").set({ senha: senhaDigitada });
-    senhaSistema = senhaDigitada;
+    await auth.signInWithEmailAndPassword(emailDigitado, senhaDigitada);
 
-    sessionStorage.setItem("acessoAutorizado", "true");
     modalSenha.style.display = "none";
-    erroSenha.hidden = true;
+    campoEmail.value = "";
     campoSenha.value = "";
   } catch (erro) {
-    erroSenha.textContent = "Senha incorreta.";
+    let mensagem = "Erro ao realizar login.";
+    if (erro.code === "auth/user-not-found" || erro.code === "auth/wrong-password" || erro.code === "auth/invalid-credential") {
+      mensagem = "E-mail ou senha incorretos.";
+    } else if (erro.code === "auth/invalid-email") {
+      mensagem = "Endereço de e-mail inválido.";
+    }
+    erroSenha.textContent = mensagem;
     erroSenha.hidden = false;
-    sucessoSenha.hidden = true;
-    campoSenha.value = "";
-    campoSenha.focus();
   }
 });
 
-// ESQUECEU A SENHA CORRIGIDO
+// 2. CADASTRO DE NOVO USUÁRIO VIA FIREBASE AUTH
+formCadastro.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  ocultarMensagens();
+
+  const email = campoEmailCadastro.value.trim();
+  const senha = campoSenhaCadastro.value;
+
+  try {
+    await auth.createUserWithEmailAndPassword(email, senha);
+
+    modalSenha.style.display = "none";
+    campoEmailCadastro.value = "";
+    campoSenhaCadastro.value = "";
+  } catch (erro) {
+    let mensagem = "Erro ao criar conta.";
+    if (erro.code === "auth/email-already-in-use") {
+      mensagem = "Este e-mail já está cadastrado! Faça login ou recupere a senha.";
+    } else if (erro.code === "auth/weak-password") {
+      mensagem = "A senha deve conter pelo menos 6 caracteres.";
+    } else if (erro.code === "auth/invalid-email") {
+      mensagem = "Endereço de e-mail inválido.";
+    }
+    erroSenha.textContent = mensagem;
+    erroSenha.hidden = false;
+  }
+});
+
+// 3. RECUPERAÇÃO DE SENHA POR E-MAIL
 btnEsqueciSenha.addEventListener("click", async () => {
-  const email = prompt("Digite seu e-mail cadastrado para redefinir a senha:");
+  ocultarMensagens();
+  const email = prompt("Digite o seu e-mail cadastrado para redefinir a senha:");
   if (!email || email.trim() === "") return;
 
   try {
     await auth.sendPasswordResetEmail(email.trim());
-    sucessoSenha.textContent = "✅ Link de redefinição enviado em português para seu e-mail!";
+    sucessoSenha.textContent = "✅ Link de redefinição enviado para o seu e-mail!";
     sucessoSenha.hidden = false;
-    erroSenha.hidden = true;
   } catch (erro) {
     alert("Não foi possível enviar o e-mail: " + erro.message);
   }
 });
 
-btnAlterarSenha.addEventListener("click", async () => {
-  const senhaAtual = prompt("Digite a sua senha atual:");
-  if (senhaAtual !== senhaSistema) {
-    alert("Senha atual incorreta.");
-    return;
-  }
-  const novaSenha = prompt("Digite a nova senha desejada:");
-  if (novaSenha && novaSenha.trim() !== "") {
-    await db.collection("configuracoes").doc("acesso").set({ senha: novaSenha.trim() });
-    senhaSistema = novaSenha.trim();
-    alert("✅ Senha alterada com sucesso!");
+// 4. BOTÃO DE SAIR / LOGOUT
+if (btnSair) {
+  btnSair.addEventListener("click", async () => {
+    if (confirm("Deseja realmente sair da sua conta?")) {
+      await auth.signOut();
+    }
+  });
+}
+
+// OBSERVADOR DE ESTADO DA AUTENTICAÇÃO (Sessão mantida nativamente pelo Firebase)
+auth.onAuthStateChanged((usuario) => {
+  if (usuario) {
+    modalSenha.style.display = "none";
+  } else {
+    modalSenha.style.display = "flex";
   }
 });
 
@@ -464,26 +503,17 @@ async function excluirHistorico(docId) {
 }
 
 // INICIALIZAÇÃO
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
   const elemData = document.getElementById("dataAtual");
   if (elemData) {
     elemData.textContent = obterDataHoje();
   }
   
-  await carregarSenha();
-  
-  if (sessionStorage.getItem("acessoAutorizado") === "true") {
-    modalSenha.style.display = "none";
-  }
-  
   escutarNuvem();
 
   if ("serviceWorker" in navigator) {
-    try {
-      await navigator.serviceWorker.register("./service-worker.js");
-      console.log("✅ Service Worker registrado com sucesso!");
-    } catch (erro) {
-      console.error("❌ Erro ao registrar Service Worker:", erro);
-    }
+    navigator.serviceWorker.register("./service-worker.js")
+      .then(() => console.log("✅ Service Worker registrado com sucesso!"))
+      .catch((erro) => console.error("❌ Erro ao registrar Service Worker:", erro));
   }
 });
