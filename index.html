@@ -1,0 +1,442 @@
+ <!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f4c3a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>UTIL_FACIL - Controle de Vendas</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- MODAL DE AUTENTICAÇÃO -->
+    <div id="modalSenha" class="modal-senha">
+        <div class="modal-conteudo">
+            <h2>🔒 Acesso_taEM_TXTRestrito</h2>
+            <p id="instrucaoLogin">Digite sua senha para acessar o UTIL_FACIL:</p>
+
+            <form id="formSenha">
+                <input
+                    type="password"
+                    id="campoSenha"
+                    placeholder="Digite a senha"
+                    required
+                    autocomplete="off"
+                >
+
+                <button type="submit" class="btn principal">
+                    Entrar no Sistema
+                </button>
+
+                <div class="acoes-login">
+                    <button type="button" id="btnEsqueciSenha" class="btn-link">
+                        Esqueceu a senha?
+                    </button>
+                </div>
+
+                <p id="erroSenha" class="mensagem-erro" hidden>
+                    Senha incorreta. Tente novamente.
+                </p>
+                <p id="sucessoSenha" class="mensagem-sucesso" hidden>
+                    Instruções enviadas para o seu e-mail!
+                </p>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- CABEÇALHO -->
+    <header class="header">
+        <div>
+            <h1>🛒 UTIL_FACIL</h1>
+            <p>Gestão Prática na Nuvem ☁️</p>
+        </div>
+
+        <div class="header-acoes">
+            <div
+                class="data-atual"
+                id="dataAtual"
+                aria-label="Data atual">
+            </div>
+
+            <button
+                id="btnAlterarSenha"
+                class="btn-config"
+                title="Alterar Senha">
+                ⚙️ Senha
+            </button>
+        </div>
+    </header>
+
+
+    <!-- MENU DE NAVEGAÇÃO -->
+    <nav
+        class="menu"
+        role="tablist"
+        aria-label="Navegação principal">
+
+        <button
+            class="menu-btn ativo"
+            data-tela="inicio"
+            role="tab"
+            aria-selected="true">
+            🏠 Início
+        </button>
+
+        <button
+            class="menu-btn"
+            data-tela="vendas"
+            role="tab"
+            aria-selected="false">
+            🛒 Vendas
+        </button>
+
+        <button
+            class="menu-btn"
+            data-tela="produtos"
+            role="tab"
+            aria-selected="false">
+            📦 Produtos
+        </button>
+
+        <button
+            class="menu-btn"
+            data-tela="historico"
+            role="tab"
+            aria-selected="false">
+            📊 Histórico
+        </button>
+    </nav>
+
+
+    <main class="container">
+
+        <!-- TELA INICIAL -->
+        <section id="inicio" class="tela ativa">
+
+            <h2>📊 Resumo do Dia</h2>
+
+            <div class="cards">
+
+                <div class="card card-vendas">
+                    <span>💰 Vendas</span>
+                    <strong id="totalVendas">R$ 0,00</strong>
+                </div>
+
+                <div class="card card-custo">
+                    <span>🏦 Custo / Capital</span>
+                    <strong id="capitalUtilizado">R$ 0,00</strong>
+                </div>
+
+                <div class="card card-lucro">
+                    <span>📈 Lucro Bruto</span>
+                    <strong id="lucroBruto">R$ 0,00</strong>
+                </div>
+
+                <div class="card dizimo">
+                    <span>🙏 Dízimo (10%)</span>
+                    <strong id="valorDizimo">R$ 0,00</strong>
+                </div>
+
+                <div class="card destaque">
+                    <span>💵 Lucro Líquido</span>
+                    <strong id="lucroFinal">R$ 0,00</strong>
+                </div>
+
+            </div>
+
+
+            <div class="painel">
+
+                <h3>📋 Fechamento do Dia</h3>
+
+                <div class="fechamento">
+
+                    <p>
+                        Total de vendas:
+                        <strong id="fechamentoVendas">
+                            R$ 0,00
+                        </strong>
+                    </p>
+
+                    <p>
+                        Capital utilizado:
+                        <strong id="fechamentoCapital">
+                            R$ 0,00
+                        </strong>
+                    </p>
+
+                    <p>
+                        Lucro bruto:
+                        <strong id="fechamentoLucro">
+                            R$ 0,00
+                        </strong>
+                    </p>
+
+                    <p class="linha-dizimo">
+                        🙏 Dízimo (10% do lucro):
+                        <strong id="fechamentoDizimo">
+                            R$ 0,00
+                        </strong>
+                    </p>
+
+                    <p class="lucro-final">
+                        💵 Lucro final:
+                        <strong id="fechamentoFinal">
+                            R$ 0,00
+                        </strong>
+                    </p>
+
+                </div>
+
+                <button
+                    class="btn principal"
+                    id="fecharDia"
+                    type="button">
+                    🔒 Fechar o Dia
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- TELA DE VENDAS -->
+        <section id="vendas" class="tela">
+
+            <h2>🛒 Registrar Venda</h2>
+
+            <div class="painel">
+
+                <form id="formVenda" autocomplete="off">
+
+                    <label for="produtoVenda">
+                        Selecione o Produto
+                    </label>
+
+                    <select id="produtoVenda" required>
+                        <option value="">
+                            Carregando produtos...
+                        </option>
+                    </select>
+
+                    <label for="quantidadeVenda">
+                        Quantidade
+                    </label>
+
+                    <input
+                        type="number"
+                        id="quantidadeVenda"
+                        min="1"
+                        value="1"
+                        inputmode="numeric"
+                        required
+                    >
+
+                    <button
+                        type="submit"
+                        class="btn principal">
+                        ➕ Confirmar Venda
+                    </button>
+
+                </form>
+
+            </div>
+
+
+            <div class="painel">
+
+                <h3>📋 Vendas de Hoje</h3>
+
+                <div id="listaVendas">
+                    <p class="vazio">
+                        Nenhuma venda registrada hoje.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- TELA DE PRODUTOS -->
+        <section id="produtos" class="tela">
+
+            <h2>📦 Gestão de Estoque</h2>
+
+            <!-- BUSCA RÁPIDA DE PRODUTOS -->
+            <div class="painel painel-busca">
+                <h3>🔎 Busca Rápida de Produtos</h3>
+                <div class="busca-container">
+                    <input 
+                        type="text" 
+                        id="inputBuscaProduto" 
+                        placeholder="Digite o nome do produto para buscar..." 
+                        autocomplete="off"
+                    >
+                </div>
+                <div id="resultadoBuscaContainer" hidden>
+                    <div id="alertaSemProduto" class="alerta-busca" hidden>
+                        <span>⚠️ Produto não cadastrado!</span>
+                        <button type="button" id="btnCadastrarDaBusca" class="btn secundario">
+                            ➕ Gostaria de cadastrar este produto?
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="painel" id="painelFormProduto">
+
+                <h3 id="tituloFormularioProduto">
+                    ➕ Cadastrar Produto
+                </h3>
+
+                <form id="formProduto" autocomplete="off">
+
+                    <input
+                        type="hidden"
+                        id="produtoId"
+                    >
+
+                    <label for="nomeProduto">
+                        Nome do produto
+                    </label>
+
+                    <input
+                        type="text"
+                        id="nomeProduto"
+                        placeholder="Ex: Cabo USB Tipo C"
+                        required
+                    >
+
+                    <label for="custoProduto">
+                        Custo (R$)
+                    </label>
+
+                    <input
+                        type="number"
+                        id="custoProduto"
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                        inputmode="decimal"
+                        required
+                    >
+
+                    <label for="precoProduto">
+                        Preço de Venda (R$)
+                    </label>
+
+                    <input
+                        type="number"
+                        id="precoProduto"
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                        inputmode="decimal"
+                        required
+                    >
+
+                    <label for="estoqueProduto">
+                        Quantidade em Estoque
+                    </label>
+
+                    <input
+                        type="number"
+                        id="estoqueProduto"
+                        placeholder="Ex: 10"
+                        min="0"
+                        inputmode="numeric"
+                        required
+                    >
+
+                    <div class="botoes-form">
+
+                        <button
+                            type="submit"
+                            class="btn principal">
+                            💾 Salvar Produto
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn cancelar"
+                            id="cancelarEdicao"
+                            hidden>
+                            ❌ Cancelar
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+
+            <div class="painel">
+
+                <h3>📦 Produtos Cadastrados</h3>
+
+                <div id="listaProdutos">
+                    <p class="vazio">
+                        Nenhum produto cadastrado.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- TELA DE HISTÓRICO -->
+        <section id="historico" class="tela">
+
+            <h2>📊 Fechamentos Anteriores</h2>
+
+            <div class="painel">
+
+                <div id="listaHistorico">
+                    <p class="vazio">
+                        Nenhum fechamento registrado.
+                    </p>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- RODAPÉ -->
+    <footer>
+
+        <p>
+            UTIL_FACIL © 2026 - Conectado na Nuvem ☁️
+        </p>
+
+        <small>
+            Dízimo automático: 10% sobre o lucro real.
+        </small>
+
+    </footer>
+
+
+    <!-- SDKs do Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+
+    <!-- JavaScript do aplicativo -->
+    <script src="script.js"></script>
+
+</body>
+</html>
