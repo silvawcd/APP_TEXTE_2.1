@@ -442,35 +442,22 @@ async function excluirVenda(docIdVenda, docIdProduto, quantidade) {
 }
 
 // DASHBOARD E FECHAMENTO
+// DASHBOARD E FECHAMENTO CORRIGIDOS
 function calcularDia() {
   const vendasHoje = obterVendasHoje();
-  let totalVendas = 0, capital = 0;
+  let totalVendas = 0, capital = 0, totalItens = 0;
 
   vendasHoje.forEach(venda => {
     totalVendas += venda.totalVenda;
     capital += venda.capital;
+    totalItens += venda.quantidade; // Soma a quantidade real de itens vendidos!
   });
 
   const lucro = totalVendas - capital;
   const dizimo = lucro > 0 ? lucro * PORCENTAGEM_DIZIMO : 0;
   const lucroFinal = lucro - dizimo;
 
-  return { totalVendas, capital, lucro, dizimo, lucroFinal };
-}
-
-function atualizarDashboard() {
-  const v = calcularDia();
-  document.getElementById("totalVendas").textContent = moeda(v.totalVendas);
-  document.getElementById("capitalUtilizado").textContent = moeda(v.capital);
-  document.getElementById("lucroBruto").textContent = moeda(v.lucro);
-  document.getElementById("valorDizimo").textContent = moeda(v.dizimo);
-  document.getElementById("lucroFinal").textContent = moeda(v.lucroFinal);
-
-  document.getElementById("fechamentoVendas").textContent = moeda(v.totalVendas);
-  document.getElementById("fechamentoCapital").textContent = moeda(v.capital);
-  document.getElementById("fechamentoLucro").textContent = moeda(v.lucro);
-  document.getElementById("fechamentoDizimo").textContent = moeda(v.dizimo);
-  document.getElementById("fechamentoFinal").textContent = moeda(v.lucroFinal);
+  return { totalVendas, capital, lucro, dizimo, lucroFinal, totalItens };
 }
 
 document.getElementById("fecharDia").addEventListener("click", async function() {
@@ -493,8 +480,12 @@ document.getElementById("fecharDia").addEventListener("click", async function() 
   await colecaoUsuario("historico").add({
     id: Date.now(),
     data: hoje,
-    ...v,
-    quantidadeVendas: vendasHoje.length
+    totalVendas: v.totalVendas,
+    capital: v.capital,
+    lucro: v.lucro,
+    dizimo: v.dizimo,
+    lucroFinal: v.lucroFinal,
+    quantidadeVendas: v.totalItens // Agora salva a quantidade total de produtos!
   });
 
   alert("✅ Fechamento do dia salvo na nuvem!");
