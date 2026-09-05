@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <link rel="manifest" href="manifest.json">
@@ -19,35 +19,81 @@
     <!-- MODAL DE AUTENTICAÇÃO -->
     <div id="modalSenha" class="modal-senha">
         <div class="modal-conteudo">
-            <h2>🔒 Acesso_taEM_TXTRestrito</h2>
-            <p id="instrucaoLogin">Digite sua senha para acessar o UTIL_FACIL:</p>
+            <h2>🔒 Acesso ao Sistema</h2>
 
+            <!-- ABAS PARA ALTERNAR ENTRE LOGIN E CADASTRO -->
+            <div class="botoes-login-alternar" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button type="button" id="btnAbaLogin" class="btn secundario ativo" style="flex: 1;">Entrar</button>
+                <button type="button" id="btnAbaCadastro" class="btn secundario" style="flex: 1;">Criar Conta</button>
+            </div>
+
+            <!-- FORMULÁRIO DE LOGIN -->
             <form id="formSenha">
-                <input
-                    type="password"
-                    id="campoSenha"
-                    placeholder="Digite a senha"
-                    required
-                    autocomplete="off"
-                >
+                <div class="grupo-input" style="margin-bottom: 10px;">
+                    <label for="campoEmail">E-mail:</label>
+                    <input
+                        type="email"
+                        id="campoEmail"
+                        placeholder="seuemail@exemplo.com"
+                        required
+                        autocomplete="email"
+                    >
+                </div>
 
-                <button type="submit" class="btn principal">
+                <div class="grupo-input" style="margin-bottom: 15px;">
+                    <label for="campoSenha">Senha:</label>
+                    <input
+                        type="password"
+                        id="campoSenha"
+                        placeholder="Digite sua senha"
+                        required
+                        autocomplete="current-password"
+                    >
+                </div>
+
+                <button type="submit" class="btn principal" style="width: 100%;">
                     Entrar no Sistema
                 </button>
 
-                <div class="acoes-login">
+                <div class="acoes-login" style="margin-top: 10px; text-align: center;">
                     <button type="button" id="btnEsqueciSenha" class="btn-link">
                         Esqueceu a senha?
                     </button>
                 </div>
-
-                <p id="erroSenha" class="mensagem-erro" hidden>
-                    Senha incorreta. Tente novamente.
-                </p>
-                <p id="sucessoSenha" class="mensagem-sucesso" hidden>
-                    Instruções enviadas para o seu e-mail!
-                </p>
             </form>
+
+            <!-- FORMULÁRIO DE CADASTRO -->
+            <form id="formCadastro" style="display: none;">
+                <div class="grupo-input" style="margin-bottom: 10px;">
+                    <label for="campoEmailCadastro">Seu E-mail:</label>
+                    <input
+                        type="email"
+                        id="campoEmailCadastro"
+                        placeholder="seuemail@exemplo.com"
+                        required
+                        autocomplete="email"
+                    >
+                </div>
+
+                <div class="grupo-input" style="margin-bottom: 15px;">
+                    <label for="campoSenhaCadastro">Crie uma Senha (mín. 6 caracteres):</label>
+                    <input
+                        type="password"
+                        id="campoSenhaCadastro"
+                        placeholder="Sua nova senha"
+                        minlength="6"
+                        required
+                        autocomplete="new-password"
+                    >
+                </div>
+
+                <button type="submit" class="btn principal" style="width: 100%;">
+                    Cadastrar e Entrar
+                </button>
+            </form>
+
+            <p id="erroSenha" class="mensagem-erro" hidden style="color: #d9534f; margin-top: 10px;"></p>
+            <p id="sucessoSenha" class="mensagem-sucesso" hidden style="color: #5cb85c; margin-top: 10px;"></p>
         </div>
     </div>
 
@@ -67,10 +113,10 @@
             </div>
 
             <button
-                id="btnAlterarSenha"
+                id="btnSair"
                 class="btn-config"
-                title="Alterar Senha">
-                ⚙️ Senha
+                title="Sair do App">
+                🚪 Sair
             </button>
         </div>
     </header>
