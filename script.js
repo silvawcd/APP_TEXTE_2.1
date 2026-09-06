@@ -442,7 +442,6 @@ async function excluirVenda(docIdVenda, docIdProduto, quantidade) {
 }
 
 // DASHBOARD E FECHAMENTO
-// DASHBOARD E FECHAMENTO CORRIGIDOS
 function calcularDia() {
   const vendasHoje = obterVendasHoje();
   let totalVendas = 0, capital = 0, totalItens = 0;
@@ -450,7 +449,7 @@ function calcularDia() {
   vendasHoje.forEach(venda => {
     totalVendas += venda.totalVenda;
     capital += venda.capital;
-    totalItens += venda.quantidade; // Soma a quantidade real de itens vendidos!
+    totalItens += venda.quantidade; // Soma a quantidade total de produtos vendidos no dia
   });
 
   const lucro = totalVendas - capital;
@@ -458,6 +457,21 @@ function calcularDia() {
   const lucroFinal = lucro - dizimo;
 
   return { totalVendas, capital, lucro, dizimo, lucroFinal, totalItens };
+}
+
+function atualizarDashboard() {
+  const v = calcularDia();
+  document.getElementById("totalVendas").textContent = moeda(v.totalVendas);
+  document.getElementById("capitalUtilizado").textContent = moeda(v.capital);
+  document.getElementById("lucroBruto").textContent = moeda(v.lucro);
+  document.getElementById("valorDizimo").textContent = moeda(v.dizimo);
+  document.getElementById("lucroFinal").textContent = moeda(v.lucroFinal);
+
+  document.getElementById("fechamentoVendas").textContent = moeda(v.totalVendas);
+  document.getElementById("fechamentoCapital").textContent = moeda(v.capital);
+  document.getElementById("fechamentoLucro").textContent = moeda(v.lucro);
+  document.getElementById("fechamentoDizimo").textContent = moeda(v.dizimo);
+  document.getElementById("fechamentoFinal").textContent = moeda(v.lucroFinal);
 }
 
 document.getElementById("fecharDia").addEventListener("click", async function() {
@@ -485,7 +499,7 @@ document.getElementById("fecharDia").addEventListener("click", async function() 
     lucro: v.lucro,
     dizimo: v.dizimo,
     lucroFinal: v.lucroFinal,
-    quantidadeVendas: v.totalItens // Agora salva a quantidade total de produtos!
+    quantidadeVendas: v.totalItens // Salva o total de itens vendidos
   });
 
   alert("✅ Fechamento do dia salvo na nuvem!");
