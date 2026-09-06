@@ -112,6 +112,16 @@
                 aria-label="Data atual">
             </div>
 
+            <!-- BOTÃO DE BLOQUEIO DE CONTA POR 24 HORAS (NOVO) -->
+            <button
+                id="btnBloquear"
+                class="btn-config"
+                style="background-color: #d9534f; color: white; margin-right: 8px;"
+                onclick="if(confirm('🚨 ATENÇÃO: Tem certeza que deseja BLOQUEAR sua conta por 24 horas? Você será deslogado e não poderá acessar o sistema até amanhã.')) aplicarBloqueio24Horas();"
+                title="Bloquear conta por 24 horas">
+                🔒 Bloquear (24h)
+            </button>
+
             <button
                 id="btnSair"
                 class="btn-config"
