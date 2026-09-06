@@ -163,17 +163,63 @@ if (btnSair) {
   });
 }
 
-// OBSERVADOR DE ESTADO DA AUTENTICAÇÃO (MANTÉM DADOS ISOLADOS POR USUÁRIO)
-auth.onAuthStateChanged((usuario) => {
+// ---------------------------------------------------------
+// NOVA FUNÇÃO: APLICAR BLOQUEIO DE 24 HORAS (SÊNIOR)
+// ---------------------------------------------------------
+async function aplicarBloqueio24Horas() {
+  if (!usuarioAtual) return;
+
+  const dataDesbloqueio = new Date();
+  dataDesbloqueio.setHours(dataDesbloqueio.getHours() + 24); // Adiciona 24h
+
+  try {
+    // Salva o timestamp do bloqueio no documento principal do usuário
+    await db.collection("usuarios").doc(usuarioAtual.uid).set({
+      bloqueadoAte: dataDesbloqueio.getTime()
+    }, { merge: true });
+
+    alert("Segurança: Sua conta foi bloqueada por 24 horas.");
+    await auth.signOut(); // Desloga o usuário imediatamente
+    
+  } catch (erro) {
+    console.error("Erro ao aplicar bloqueio:", erro);
+    alert("Falha ao aplicar o bloqueio de segurança.");
+  }
+}
+
+// OBSERVADOR DE ESTADO DA AUTENTICAÇÃO (VERIFICA BLOQUEIO)
+auth.onAuthStateChanged(async (usuario) => {
   // Limpa ouvintes antigos ao trocar de conta
   desinscritosListeners.forEach(unsub => unsub());
   desinscritosListeners = [];
 
   if (usuario) {
+    // VERIFICAÇÃO DE BLOQUEIO NO FIRESTORE
+    try {
+      const docUsuario = await db.collection("usuarios").doc(usuario.uid).get();
+      
+      if (docUsuario.exists) {
+        const dados = docUsuario.data();
+        
+        // Se o campo existe e a data atual é menor que a data de desbloqueio
+        if (dados.bloqueadoAte && Date.now() < dados.bloqueadoAte) {
+          const dataFim = new Date(dados.bloqueadoAte).toLocaleString('pt-BR');
+          alert(`Acesso restrito. Sua conta está bloqueada até: ${dataFim}`);
+          
+          await auth.signOut(); // Expulsa o usuário bloqueado
+          return; // Interrompe a execução para não carregar a tela nem os dados
+        }
+      }
+    } catch (erro) {
+      console.error("Erro ao verificar status de bloqueio:", erro);
+    }
+
+    // Se não estiver bloqueado, segue o fluxo normal do sistema
     usuarioAtual = usuario;
     modalSenha.style.display = "none";
     escutarNuvemUsuario(usuario.uid);
   } else {
+    // Fluxo padrão para usuário deslogado
     usuarioAtual = null;
     produtos = [];
     vendas = [];
